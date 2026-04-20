@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
+import '../services/firestore_service.dart';
 
 class ProjectsScreen extends StatelessWidget {
   final Widget? drawer;
   const ProjectsScreen({super.key, this.drawer});
+
+  String get _farmerId => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -33,83 +38,98 @@ class ProjectsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Text('Dự án đang thực hiện',
-                style: GoogleFonts.beVietnamPro(
-                    fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-            const SizedBox(height: 12),
-            // Project: Rau muống
-            _buildProjectCard(
-              context,
-              icon: Icons.eco,
-              iconBgColor: AppColors.primaryGreen,
-              title: 'Rau muống',
-              subtitle: 'Đã trồng 15 ngày',
-              onTap: () => Navigator.pushNamed(context, '/project-detail'),
-            ),
-            const SizedBox(height: 12),
-            // Project: Lúa
-            _buildProjectCard(
-              context,
-              icon: Icons.grass,
-              iconBgColor: AppColors.brownGold,
-              title: 'Lúa',
-              subtitle: 'Đã trồng 8 ngày',
-              onTap: () => Navigator.pushNamed(context, '/project-detail'),
-            ),
-            const SizedBox(height: 12),
-            // Add new project
-            _buildProjectCard(
-              context,
-              icon: Icons.add_circle_outline,
-              iconBgColor: AppColors.redAccent,
-              title: 'Thêm dự án mới',
-              subtitle: '',
-              onTap: () => Navigator.pushNamed(context, '/add-project'),
-            ),
-            const SizedBox(height: 28),
-            // Tasks section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.inputBg,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Công việc hôm nay',
-                          style: GoogleFonts.beVietnamPro(
-                              fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/tasks'),
-                        child: Text('Xem tất cả',
-                            style: GoogleFonts.beVietnamPro(
-                                fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primaryGreen)),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirestoreService().getProjects(_farmerId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            );
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Lỗi: ${snapshot.error}',
+                  style: GoogleFonts.beVietnamPro(color: AppColors.textSecondary)),
+            );
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Text('Dự án đang thực hiện',
+                    style: GoogleFonts.beVietnamPro(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 12),
+
+                // Projects from Firestore
+                if (docs.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.inputBg,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.eco_outlined, size: 48, color: AppColors.textLight),
+                          const SizedBox(height: 8),
+                          Text('Chưa có dự án nào',
+                              style: GoogleFonts.beVietnamPro(
+                                  fontSize: 15, color: AppColors.textSecondary)),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  _buildTaskItem('Tưới rau', false),
-                  const SizedBox(height: 10),
-                  _buildTaskItem('Bón phân', false),
-                  const SizedBox(height: 10),
-                  _buildTaskItem('Kiểm tra sâu', false),
-                  const SizedBox(height: 10),
-                  _buildTaskItem('Thêm', false),
-                ],
-              ),
+
+                ...docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final String projectName = data['projectName'] ?? 'Dự án';
+                  final String cropType = data['cropType'] ?? '';
+                  final startDate = data['startDate'];
+                  String subtitle = cropType;
+                  if (startDate != null) {
+                    try {
+                      final dt = (startDate as Timestamp).toDate();
+                      final daysSince = DateTime.now().difference(dt).inDays;
+                      subtitle = 'Đã trồng $daysSince ngày';
+                    } catch (_) {}
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildProjectCard(
+                      context,
+                      icon: Icons.eco,
+                      iconBgColor: AppColors.primaryGreen,
+                      title: projectName,
+                      subtitle: subtitle,
+                      onTap: () => Navigator.pushNamed(context, '/project-detail',
+                          arguments: {'projectId': doc.id, 'data': data}),
+                    ),
+                  );
+                }),
+
+                // Add new project button
+                _buildProjectCard(
+                  context,
+                  icon: Icons.add_circle_outline,
+                  iconBgColor: AppColors.redAccent,
+                  title: 'Thêm dự án mới',
+                  subtitle: '',
+                  onTap: () => Navigator.pushNamed(context, '/add-project'),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -146,44 +166,19 @@ class ProjectsScreen extends StatelessWidget {
                 children: [
                   Text(title,
                       style: GoogleFonts.beVietnamPro(
-                          fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
                   if (subtitle.isNotEmpty)
                     Text(subtitle,
-                        style: GoogleFonts.beVietnamPro(fontSize: 13, color: AppColors.textSecondary)),
+                        style: GoogleFonts.beVietnamPro(
+                            fontSize: 13, color: AppColors.textSecondary)),
                 ],
               ),
             ),
             const Icon(Icons.chevron_right, color: AppColors.textLight),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(String title, bool done) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.4), width: 2),
-              color: done ? AppColors.primaryGreen : Colors.transparent,
-            ),
-            child: done ? const Icon(Icons.check, color: AppColors.white, size: 14) : null,
-          ),
-          const SizedBox(width: 12),
-          Text(title,
-              style: GoogleFonts.beVietnamPro(
-                  fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-        ],
       ),
     );
   }

@@ -31,6 +31,10 @@
 
   <title>tro_nong</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <!--
@@ -41,6 +45,53 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // ── Web Speech API helpers ──────────────────────────────────
+    var _recognition = null;
+
+    window.startListening = function(onResult, onError) {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { onError('NOT_SUPPORTED'); return; }
+
+      if (_recognition) { try { _recognition.stop(); } catch(e) {} }
+
+      _recognition = new SR();
+      _recognition.lang = 'vi-VN';
+      _recognition.continuous = false;
+      _recognition.interimResults = false;
+      _recognition.maxAlternatives = 1;
+
+      _recognition.onresult = function(event) {
+        var transcript = event.results[0][0].transcript;
+        onResult(transcript);
+      };
+      _recognition.onerror = function(event) {
+        onError(event.error);
+      };
+      _recognition.onend = function() {
+        _recognition = null;
+      };
+      _recognition.start();
+    };
+
+    window.stopListening = function() {
+      if (_recognition) { try { _recognition.stop(); } catch(e) {} _recognition = null; }
+    };
+
+    window.speakText = function(text, onDone) {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'vi-VN';
+      u.rate = 0.95;
+      u.pitch = 1.0;
+      u.onend = function() { if (onDone) onDone(); };
+      window.speechSynthesis.speak(u);
+    };
+
+    window.cancelSpeech = function() {
+      window.speechSynthesis.cancel();
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

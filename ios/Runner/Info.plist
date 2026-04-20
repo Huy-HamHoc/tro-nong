@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ứng dụng Trợ Nông cần dùng micro để bạn hỏi câu hỏi bằng giọng nói.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ứng dụng Trợ Nông cần nhận dạng giọng nói để trả lời câu hỏi của bạn.</string>
 </dict>
 </plist>
