@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // ─── Voice assistant ────────────────────────────────────
-            const VoiceAssistantWidget(),
+            const Center(child: VoiceAssistantWidget()),
             const SizedBox(height: 24),
 
             // ─── Tasks ──────────────────────────────────────────────
