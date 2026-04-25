@@ -22,39 +22,50 @@
 | 14 | Bảo mật | Đổi mật khẩu |
 | 15 | Công việc | Danh sách việc hôm nay |
 
-## 🚀 Cách chạy app
+## 🚀 Hướng dẫn cài đặt và sử dụng (Cho người mới)
 
-### Yêu cầu
-- **Flutter SDK** (phiên bản 3.11+): [Tải tại đây](https://docs.flutter.dev/get-started/install)
-- **Chrome** (để chạy trên web)
+### 1. Yêu cầu môi trường
+Trước khi bắt đầu, máy tính của bạn cần cài đặt các công cụ sau:
+- **Flutter SDK** (phiên bản 3.11+): [Hướng dẫn cài đặt Flutter](https://docs.flutter.dev/get-started/install)
+- **Android Studio** hoặc **Visual Studio Code**: 
 
-### Bước 1: Clone dự án
-```bash
-git clone https://github.com/Huy-HamHoc/tro-nong.git
-cd tro-nong
-```
+### 2. Tải 
 
-### Bước 2: Cài dependencies
+**Bước 1: Cài đặt các thư viện (dependencies)**
 ```bash
 flutter pub get
 ```
 
-### Bước 3: Chạy app
+---
+
+### 3. Hướng dẫn chạy ứng dụng
+
+#### Tùy chọn 1: Chạy trên trình duyệt Chrome 
 ```bash
-# Chạy trên Chrome (web)
 flutter run -d chrome
+```
+*Cách xem giao diện điện thoại*
+1. Khi app đã chạy, trên tab Chrome nhấn **F12** (mở Developer Tools).
+2. Nhấn **Ctrl + Shift + M** (bật chế độ hiển thị thiết bị di động).
+3. Chọn thiết bị giả lập ở thanh trên cùng (ví dụ: iPhone 14 Pro) và F5 (Refresh) lại trang.
 
-# Chạy trên Android (cần Android Studio + thiết bị/emulator)
+#### 📱 Tùy chọn 2: Build file APK (Android)
+Đảm bảo đã cài đặt Android Studio và Android SDK.
+
+**Cách 1: Chạy trực tiếp lên máy ảo / máy thật**
+- Bật máy ảo từ Android Studio, HOẶC cắm điện thoại Android vào máy tính
+```bash
 flutter run -d android
-
-# Chạy trên Windows
-flutter run -d windows
 ```
 
-### Bước 4: Xem giao diện điện thoại trên Chrome
-1. Nhấn **F12** (mở Developer Tools)
-2. Nhấn **Ctrl + Shift + M** (bật chế độ mobile)
-3. Chọn thiết bị (ví dụ: iPhone 14 Pro)
+**Cách 2: Xuất file cài đặt APK**
+Để tạo file `.apk` và gửi cho người dùng cài đặt, chạy lệnh sau:
+```bash
+flutter build apk --release
+```
+*Sau khi build thành công, file APK sẽ được tạo tại thư mục:*
+`build\app\outputs\flutter-apk\app-release.apk`
+Bạn có thể copy file này vào điện thoại để cài đặt.
 
 ## 🛠 Công nghệ sử dụng
 - **Flutter** 3.11+
