@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyCLSVGqD6696AKNP5LOwCtafFxjO6prka4';
-  static const String _model = 'gemini-1.5-flash';
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
+  static const String _apiKey = 'sk-llmiec-3a66805717d662775fd29eea34288292';
+  static const String _model = 'iec_miro'; // Hoặc tên model bạn đang dùng trên server này
+  static const String _baseUrl = 'https://llmapi.iec-uit.com/v1/chat/completions';
 
   static const String _systemPrompt = '''
 Bạn là trợ lý nông nghiệp thông minh của ứng dụng "Trợ Nông" – một ứng dụng hỗ trợ nông dân Việt Nam quản lý canh tác, bán nông sản và trao đổi kiến thức nông nghiệp.
@@ -35,30 +34,28 @@ Quy tắc trả lời:
   Future<String> ask(String question) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl?key=$_apiKey'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Bearer $_apiKey',
+        },
         body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {'text': '$_systemPrompt\n\nNông dân hỏi: $question'}
-              ]
-            }
+          'model': _model,
+          'messages': [
+            {'role': 'system', 'content': _systemPrompt},
+            {'role': 'user', 'content': question}
           ],
-          'generationConfig': {
-            'temperature': 0.7,
-            'maxOutputTokens': 512,
-          },
+          'temperature': 0.7,
+          'max_tokens': 512,
         }),
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final candidates = data['candidates'] as List<dynamic>;
-        if (candidates.isNotEmpty) {
-          final content = candidates[0]['content'] as Map<String, dynamic>;
-          final parts = content['parts'] as List<dynamic>;
-          return (parts[0]['text'] as String).trim();
+        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final choices = data['choices'] as List<dynamic>;
+        if (choices.isNotEmpty) {
+          final message = choices[0]['message'] as Map<String, dynamic>;
+          return (message['content'] as String).trim();
         }
       }
       return 'Xin lỗi, tôi không thể kết nối được lúc này. Bạn thử lại sau nhé!';

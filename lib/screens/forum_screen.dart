@@ -6,9 +6,16 @@ import '../theme/app_theme.dart';
 import '../services/firestore_service.dart';
 import 'forum_post_detail_screen.dart';
 
-class ForumScreen extends StatelessWidget {
+class ForumScreen extends StatefulWidget {
   final Widget? drawer;
   const ForumScreen({super.key, this.drawer});
+
+  @override
+  State<ForumScreen> createState() => _ForumScreenState();
+}
+
+class _ForumScreenState extends State<ForumScreen> {
+  String _searchQuery = '';
 
   /// Seed bài viết mẫu vào Firestore (chỉ chạy 1 lần)
   Future<void> _seedSamplePosts(BuildContext context) async {
@@ -140,7 +147,7 @@ class ForumScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: drawer,
+      drawer: widget.drawer,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         leading: Builder(
@@ -166,20 +173,25 @@ class ForumScreen extends StatelessWidget {
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.inputBg,
-                borderRadius: BorderRadius.circular(14),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Tìm bài viết, tác giả, hashtag...',
+                hintStyle: GoogleFonts.beVietnamPro(fontSize: 14, color: AppColors.textLight),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textLight, size: 20),
+                filled: true,
+                fillColor: AppColors.inputBg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: AppColors.textLight, size: 20),
-                  const SizedBox(width: 10),
-                  Text('Tìm kiếm bài viết...',
-                      style: GoogleFonts.beVietnamPro(fontSize: 14, color: AppColors.textLight)),
-                ],
-              ),
+              style: GoogleFonts.beVietnamPro(fontSize: 14, color: AppColors.textPrimary),
             ),
           ),
           const SizedBox(height: 12),
@@ -194,7 +206,24 @@ class ForumScreen extends StatelessWidget {
                     child: CircularProgressIndicator(color: AppColors.primaryGreen),
                   );
                 }
-                final docs = snapshot.data?.docs ?? [];
+                final allDocs = snapshot.data?.docs ?? [];
+                final docs = allDocs.where((doc) {
+                  if (_searchQuery.isEmpty) return true;
+                  final data = doc.data() as Map<String, dynamic>;
+                  final title = (data['title'] ?? '').toString().toLowerCase();
+                  final content = (data['content'] ?? '').toString().toLowerCase();
+                  final author = (data['authorName'] ?? '').toString().toLowerCase();
+                  final tags = (data['tags'] as List<dynamic>?)?.map((e) => e.toString().toLowerCase()).toList() ?? [];
+
+                  if (title.contains(_searchQuery)) return true;
+                  if (content.contains(_searchQuery)) return true;
+                  if (author.contains(_searchQuery)) return true;
+                  for (final tag in tags) {
+                    if (tag.contains(_searchQuery)) return true;
+                  }
+                  return false;
+                }).toList();
+
                 if (docs.isEmpty) {
                   return Center(
                     child: Column(
